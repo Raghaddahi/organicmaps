@@ -257,19 +257,32 @@ bool IsActive(WeekdayRange const & range, std::tm const & date)
   return range.HasWday(wday);
 }
 
-bool IsActive(Holiday const & holiday, std::tm const & date)
+bool IsActive(Holiday const & holiday, std::tm const & date, THolidayDates const & holidays)
 {
+  // Normalize date
+  std::tm normalized = date;
+  normalized.tm_hour = 0;
+  normalized.tm_min = 0;
+  normalized.tm_sec = 0;
+  time_t normalizedTime = std::mktime(&normalized);
+
+  if (holiday.IsPlural())
+  {
+    for (auto const & h : holidays)
+      if (h == normalizedTime)
+        return true;
+  }
   return false;
 }
 
-bool IsActive(Weekdays const & weekdays, std::tm const & date)
+bool IsActive(Weekdays const & weekdays, std::tm const & date, THolidayDates const & holidays)
 {
   for (auto const & wr : weekdays.GetWeekdayRanges())
     if (IsActive(wr, date))
       return true;
 
   for (auto const & hd : weekdays.GetHolidays())
-    if (IsActive(hd, date))
+    if (IsActive(hd, date, holidays))
       return true;
 
   return weekdays.GetWeekdayRanges().empty() &&

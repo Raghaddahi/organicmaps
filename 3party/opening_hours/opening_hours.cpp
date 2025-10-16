@@ -37,6 +37,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "3party/minizip/minizip.hpp"
+
 namespace
 {
 template <typename T, typename SeparatorExtractor>
@@ -883,6 +885,17 @@ OpeningHours::OpeningHours(TRuleSequences const & rule):
 {
 }
 
+OpeningHours::OpeningHours(std::string const & rule, THolidayDates const & holidays)
+  : m_valid(Parse(rule, m_rule))
+  , m_holidays(holidays)
+{}
+
+OpeningHours::OpeningHours(TRuleSequences const & rule, THolidayDates const & holidays)
+  : m_rule(rule)
+  , m_valid(true)
+  , m_holidays(holidays)
+{}
+
 bool OpeningHours::IsOpen(time_t const dateTime) const
 {
   return osmoh::IsOpen(m_rule, dateTime);
@@ -902,9 +915,27 @@ OpeningHours::InfoT OpeningHours::GetInfo(time_t const dateTime) const
 {
   InfoT info;
   info.state = GetState(m_rule, dateTime);
+
+  // Normalize dateTime to midnight once
+  std::tm tm = *std::localtime(&dateTime);
+  tm.tm_hour = 0;
+  tm.tm_min = 0;
+  tm.tm_sec = 0;
+  time_t normalizedDateTime = std::mktime(&tm);
+
+  info.isHoliday = m_isHoliday;
+  for (auto const & holiday : m_holidays)
+  {
+    if (holiday == normalizedDateTime)
+    {
+      info.isHoliday = true;
+      break;
+    }
+  }
+
   if (info.state != RuleState::Unknown)
   {
-   if (info.state == RuleState::Open)
+    if (info.state == RuleState::Open)
       info.nextTimeOpen = dateTime;
     else
       info.nextTimeOpen = osmoh::GetNextTimeState(m_rule, dateTime, RuleState::Open);

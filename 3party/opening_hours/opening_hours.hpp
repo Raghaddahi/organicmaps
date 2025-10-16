@@ -378,6 +378,7 @@ private:
 };
 
 using THolidays = std::vector<Holiday>;
+using THolidayDates = std::vector<time_t>;
 
 std::ostream & operator<<(std::ostream & ost, Holiday const & holiday);
 std::ostream & operator<<(std::ostream & ost, THolidays const & holidys);
@@ -706,6 +707,8 @@ public:
   OpeningHours() = default;
   OpeningHours(std::string const & rule);
   OpeningHours(TRuleSequences const & rule);
+  OpeningHours(std::string const & rule, THolidayDates const & holidays);
+  OpeningHours(TRuleSequences const & rule, THolidayDates const & holidays);
 
   bool IsOpen(time_t const dateTime) const;
   bool IsClosed(time_t const dateTime) const;
@@ -717,8 +720,8 @@ public:
     /// Calculated only if state != RuleState::Unknown.
     time_t nextTimeOpen;
     time_t nextTimeClosed;
+    bool isHoliday;
   };
-
   InfoT GetInfo(time_t const dateTime) const;
 
   bool IsValid() const;
@@ -738,6 +741,8 @@ public:
 private:
   TRuleSequences m_rule;
   bool m_valid = false;
+  THolidayDates m_holidays;
+  bool m_isHoliday = false;
 };
 
 std::ostream & operator<<(std::ostream & ost, OpeningHours const & oh);
